@@ -4,6 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>NexAuras — Application</title>
+<script>
+  (function () {
+    try {
+      var stored = localStorage.getItem('nexauras-theme');
+      var theme = stored || ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (e) {}
+  })();
+</script>
 
 <!-- ============================================================
   SETUP CHECKLIST — deploying on Netlify
@@ -63,11 +72,32 @@
     --radius-sm: 12px;
   }
 
-  *{ box-sizing: border-box; }
+  html[data-theme="dark"]{
+    --bg: #2b2f3d;
+    --surface: #2b2f3d;
+    --shadow-dark: #21242f;
+    --shadow-light: #35394a;
+    --text: #edeff5;
+    --text-dim: #a3aac0;
+    --text-faint: #767e96;
+    --accent-blue: #7c9aef;
+    --accent-blue-dim: rgba(124,154,239,0.16);
+    --accent-teal: #56d0c4;
+    --accent-teal-dim: rgba(86,208,196,0.16);
+    --accent-amber: #e0ac6c;
+    --danger: #e88099;
+    --danger-dim: rgba(232,128,153,0.16);
+  }
+
+  *{
+    box-sizing: border-box;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
 
   html,body{
     margin:0; padding:0; min-height:100vh;
     background: var(--bg);
+    transition: background-color 0.35s ease, color 0.35s ease;
     color: var(--text);
   }
 
@@ -86,7 +116,7 @@
     body{ padding: 36px 16px; }
   }
 
-  .page{ width:100%; max-width: 950px; }
+  .page{ width:100%; max-width: 520px; }
 
   /* ---- Neomorphic shadow utilities ---- */
   .raised{
@@ -102,12 +132,42 @@
       inset -5px -5px 10px var(--shadow-light);
   }
 
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
   .logo{
     display:flex;
     align-items:center;
     gap:10px;
-    margin-bottom: 24px;
   }
+  .theme-toggle{
+    flex-shrink:0;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--surface);
+    color: var(--text-dim);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    box-shadow:
+      5px 5px 10px var(--shadow-dark),
+      -5px -5px 10px var(--shadow-light);
+    transition: box-shadow 0.15s ease, color 0.15s ease, transform 0.3s ease;
+  }
+  .theme-toggle:hover{ color: var(--accent-blue); }
+  .theme-toggle:active{
+    box-shadow:
+      inset 3px 3px 6px var(--shadow-dark),
+      inset -3px -3px 6px var(--shadow-light);
+  }
+  .theme-toggle .icon-sun,
+  .theme-toggle .icon-moon{ display:none; }
+  html[data-theme="dark"] .theme-toggle .icon-sun{ display:block; }
+  html:not([data-theme="dark"]) .theme-toggle .icon-moon{ display:block; }
   .logo img{
     width: 38px; height: 38px;
     border-radius: 12px;
@@ -461,9 +521,15 @@
 <body>
 
 <div class="page">
-  <div class="logo">
-    <img src="assets/icon.png" alt="NexAuras logo" onerror="this.style.display='none'" />
-    <span>NexAuras</span>
+  <div class="topbar">
+    <div class="logo">
+      <img src="assets/icon.png" alt="NexAuras logo" onerror="this.style.display='none'" />
+      <span>NexAuras</span>
+    </div>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch to dark mode">
+      <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
   </div>
   <div class="eyebrow">NexAuras / Application</div>
   <h1>Apply to <span>NexAuras</span></h1>
@@ -774,6 +840,27 @@
   //    set the destination address in the Netlify dashboard instead)
   // =========================================================
   const GOOGLE_CLIENT_ID = "548218018320-dgv849ji0n2f3c9nujef1qufbvpo4a7p.apps.googleusercontent.com";
+
+  // ---- Theme toggle (light / dark), persisted in localStorage ----
+  (function () {
+    const toggleBtn = document.getElementById('themeToggle');
+
+    function currentTheme() {
+      return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    }
+
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      try { localStorage.setItem('nexauras-theme', theme); } catch (e) {}
+      toggleBtn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+
+    setTheme(currentTheme()); // sync aria-label with whatever the head script already applied
+
+    toggleBtn.addEventListener('click', function () {
+      setTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+    });
+  })();
 
   // ---- Build the checkbox pill groups for Position + Skills ----
   const POSITION_OPTIONS = [
